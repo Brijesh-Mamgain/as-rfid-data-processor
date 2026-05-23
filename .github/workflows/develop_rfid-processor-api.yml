@@ -7,7 +7,7 @@ on:
 
 env:
   ACR_NAME: rfidacr.azurecr.io
-  IMAGE_NAME: rfid-processor
+  IMAGE_NAME: rfid-processor:latest
 
 jobs:
   build-and-deploy:
