@@ -6,8 +6,11 @@ on:
       - develop
 
 env:
-  ACR_NAME: rfidacr.azurecr.io
+  ACR_NAME: rfidacr
+  ACR_LOGIN_SERVER: rfidacr.azurecr.io
   IMAGE_NAME: rfid-processor
+  RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
+  WEBAPP_NAME: rfid-processor-api
 
 jobs:
   build-and-deploy:
@@ -23,20 +26,35 @@ jobs:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
 
     - name: Login to ACR
-      run: az acr login --name rfidacr
+      run: az acr login --name $ACR_NAME
 
     - name: Build Docker Image
       run: |
-        docker build -t $ACR_NAME/$IMAGE_NAME:${{ github.sha }} .
-        docker tag $ACR_NAME/$IMAGE_NAME:${{ github.sha }} $ACR_NAME/$IMAGE_NAME:latest
+        docker build -t $ACR_LOGIN_SERVER/$IMAGE_NAME:${{ github.sha }} .
+        docker tag $ACR_LOGIN_SERVER/$IMAGE_NAME:${{ github.sha }} $ACR_LOGIN_SERVER/$IMAGE_NAME:latest
 
     - name: Push Image
       run: |
-        docker push $ACR_NAME/$IMAGE_NAME:${{ github.sha }}
-        docker push $ACR_NAME/$IMAGE_NAME:latest
+        docker push $ACR_LOGIN_SERVER/$IMAGE_NAME:${{ github.sha }}
+        docker push $ACR_LOGIN_SERVER/$IMAGE_NAME:latest
 
+    - name: Update App Service Configuration
+      run: |
+        if [ -z "$ACR_LOGIN_SERVER" ] || [ -z "$IMAGE_NAME" ] || [ -z "$RESOURCE_GROUP" ] || [ -z "$WEBAPP_NAME" ]; then
+          echo "Error: Required variables are missing"
+          exit 1
+        fi
+
+        LINUX_FX_VERSION="DOCKER|${ACR_LOGIN_SERVER}/${IMAGE_NAME}:latest"
+        echo "Setting LinuxFxVersion to: $LINUX_FX_VERSION"
+
+        az webapp config set \
+          --resource-group $RESOURCE_GROUP \
+          --name $WEBAPP_NAME \
+          --linux-fx-version "$LINUX_FX_VERSION"
+    
     - name: Deploy to App Service
       uses: azure/webapps-deploy@v2
       with:
-        app-name: rfid-processor-api
-        images: ${{ env.ACR_NAME }}/${{ env.IMAGE_NAME }}:latest
+        app-name: ${{ env.WEBAPP_NAME }}
+        images: ${{ env.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:latest
