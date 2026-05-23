@@ -1,0 +1,60 @@
+import logging
+from pathlib import Path
+
+from fastapi import APIRouter, File, Form, UploadFile
+from starlette import status
+
+from app.core.config import settings
+from app.core.exceptions import InvalidRFIDFileError
+from app.integrations.azure_blob import AzureBlobClient
+from app.models.rfid import UploadRFIDResponse
+from app.services.rfid_processor import RFIDProcessor
+
+
+logger = logging.getLogger(__name__)
+router = APIRouter(tags=["RFID"])
+
+
+@router.post(
+    "/upload-rfid",
+    response_model=UploadRFIDResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def upload_rfid(
+    file: UploadFile = File(...),
+    deviceId: str | None = Form(default=None),
+    timestamp: str | None = Form(default=None),
+) -> UploadRFIDResponse:
+    suffix = Path(file.filename or "").suffix.lower()
+    if suffix != ".txt":
+        raise InvalidRFIDFileError("Only .txt files are allowed")
+
+    file_content = await file.read()
+    if len(file_content) > settings.max_upload_size_bytes:
+        raise InvalidRFIDFileError("File exceeds configured size limit")
+
+    processor = RFIDProcessor()
+    processing_result = processor.parse(file_content)
+
+    blob_client = AzureBlobClient()
+    blob_url = blob_client.upload_with_retry(file.filename or "rfid.txt", file_content)
+
+    logger.info(
+        "rfid_upload_success file=%s deviceId=%s timestamp=%s processed=%s valid=%s invalid=%s",
+        file.filename,
+        deviceId,
+        timestamp,
+        processing_result.total_records,
+        processing_result.valid_records,
+        processing_result.invalid_records,
+    )
+
+    return UploadRFIDResponse(
+        status="success",
+        message="File uploaded and processed successfully",
+        fileName=blob_client.sanitize_filename(file.filename or "rfid.txt"),
+        recordsProcessed=processing_result.total_records,
+        validRecords=processing_result.valid_records,
+        invalidRecords=processing_result.invalid_records,
+        blobUrl=blob_url,
+    )
