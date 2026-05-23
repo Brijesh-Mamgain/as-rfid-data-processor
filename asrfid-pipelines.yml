@@ -1,0 +1,48 @@
+trigger:
+  branches:
+    include:
+      - develop
+
+variables:
+  imageName: rfid-processor
+  acrName: rfidacr.azurecr.io
+
+stages:
+- stage: Build
+  displayName: Build & Push Image
+  jobs:
+  - job: Build
+    pool:
+      vmImage: 'ubuntu-latest'
+
+    steps:
+    - checkout: self
+
+    - task: Docker@2
+      displayName: Build and Push Image
+      inputs:
+        containerRegistry: 'rfid-acr-service-connection'
+        repository: $(imageName)
+        command: 'buildAndPush'
+        Dockerfile: '**/Dockerfile'
+        tags: |
+          latest
+          $(Build.BuildId)
+
+- stage: Deploy
+  displayName: Deploy to App Service
+  dependsOn: Build
+  jobs:
+  - deployment: DeployWebApp
+    pool:
+      vmImage: 'ubuntu-latest'
+    environment: 'rfid-prod'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: AzureWebAppContainer@1
+            inputs:
+              azureSubscription: 'rfid-azure-service-connection'
+              appName: 'rfid-processor-api'
+              containers: 'rfidacr.azurecr.io/rfid-processor:latest'
