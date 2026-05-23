@@ -1,0 +1,42 @@
+name: Build and Deploy RFID Processor
+
+on:
+  push:
+    branches:
+      - develop
+
+env:
+  ACR_NAME: rfidacr.azurecr.io
+  IMAGE_NAME: rfid-processor
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Login to ACR
+      run: az acr login --name rfidacr
+
+    - name: Build Docker Image
+      run: |
+        docker build -t $ACR_NAME/$IMAGE_NAME:${{ github.sha }} .
+        docker tag $ACR_NAME/$IMAGE_NAME:${{ github.sha }} $ACR_NAME/$IMAGE_NAME:latest
+
+    - name: Push Image
+      run: |
+        docker push $ACR_NAME/$IMAGE_NAME:${{ github.sha }}
+        docker push $ACR_NAME/$IMAGE_NAME:latest
+
+    - name: Deploy to App Service
+      uses: azure/webapps-deploy@v2
+      with:
+        app-name: rfid-processor-api
+        images: $ACR_NAME/$IMAGE_NAME:latest
