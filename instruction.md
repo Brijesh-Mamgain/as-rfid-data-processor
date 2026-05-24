@@ -197,3 +197,4 @@ If you want, I can next:
 ✅ Create a **CI/CD pipeline YAML** for this project
 
 Just tell me 👍
+Refer develop_rfid-processor-api.yml for CI /CD deployment
