@@ -9,7 +9,8 @@ env:
   ACR_NAME: rfidacr
   ACR_LOGIN_SERVER: rfidacr.azurecr.io
   IMAGE_NAME: rfid-processor
-  RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
+  #RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
+  RESOURCE_GROUP: rg-rfid-processor
   WEBAPP_NAME: rfid-processor-api
 
 jobs:
