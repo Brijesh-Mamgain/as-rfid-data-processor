@@ -53,7 +53,20 @@ jobs:
           --resource-group $RESOURCE_GROUP \
           --name $WEBAPP_NAME \
           --linux-fx-version "$LINUX_FX_VERSION"
-    
+
+    - name: Configure ACR credentials on App Service
+      run: |
+        ACR_USERNAME=$(az acr credential show --name $ACR_NAME --query username -o tsv)
+        ACR_PASSWORD=$(az acr credential show --name $ACR_NAME --query "passwords[0].value" -o tsv)
+
+        az webapp config container set \
+          --resource-group $RESOURCE_GROUP \
+          --name $WEBAPP_NAME \
+          --container-registry-url https://$ACR_LOGIN_SERVER \
+          --container-registry-user $ACR_USERNAME \
+          --container-registry-password $ACR_PASSWORD \
+          --container-image-name $ACR_LOGIN_SERVER/$IMAGE_NAME:latest
+
     - name: Deploy to App Service
       uses: azure/webapps-deploy@v2
       with:
