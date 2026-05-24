@@ -198,3 +198,5 @@ If you want, I can next:
 
 Just tell me 👍
 Refer develop_rfid-processor-api.yml for CI /CD deployment
+--------------------------
+azure blob connection string added to git secret.
