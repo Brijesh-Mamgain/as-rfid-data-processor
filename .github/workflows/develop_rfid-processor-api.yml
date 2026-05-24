@@ -67,6 +67,20 @@ jobs:
           --container-registry-password $ACR_PASSWORD \
           --container-image-name $ACR_LOGIN_SERVER/$IMAGE_NAME:latest
 
+    - name: Set App Service application settings
+      run: |
+        az webapp config appsettings set \
+          --resource-group $RESOURCE_GROUP \
+          --name $WEBAPP_NAME \
+          --settings \
+            APP_ENV='prod' \
+            APP_DEBUG='false' \
+            AZURE_BLOB_CONNECTION_STRING='${{ secrets.AZURE_BLOB_CONNECTION_STRING }}' \
+            AZURE_BLOB_ACCOUNT_URL='${{ secrets.AZURE_BLOB_ACCOUNT_URL }}' \
+            AZURE_BLOB_CONTAINER_NAME='${{ secrets.AZURE_BLOB_CONTAINER_NAME }}' \
+            MAX_UPLOAD_SIZE_BYTES='5242880' \
+            MAX_LINE_LENGTH='256'
+
     - name: Deploy to App Service
       uses: azure/webapps-deploy@v2
       with:
