@@ -5,7 +5,6 @@ import time
 
 from azure.identity import DefaultAzureCredential
 from azure.storage.blob import BlobServiceClient
-
 from app.core.config import settings
 
 
