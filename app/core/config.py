@@ -9,7 +9,6 @@ class Settings(BaseSettings):
     azure_blob_connection_string: str | None = None
     azure_blob_account_url: str | None = None
     azure_blob_container_name: str = "rfid-files"
-
     max_upload_size_bytes: int = 5 * 1024 * 1024
     max_line_length: int = 256
 
