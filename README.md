@@ -74,6 +74,38 @@ Use either `AZURE_BLOB_CONNECTION_STRING` or `AZURE_BLOB_ACCOUNT_URL`.
 
 ## API
 
+### `POST /parse-rfid`
+
+Accepts multipart form-data:
+
+- `file` (required): RFID text file (`.txt` only)
+- `deviceid` (optional): source device identifier
+- `timestamp` (optional): event timestamp string
+
+Example request:
+
+```bash
+curl --request POST "http://127.0.0.1:8000/parse-rfid" \
+	--form "file=@sample.txt" \
+	--form "deviceid=device-001" \
+	--form "timestamp=2026-05-23T10:00:00Z"
+```
+
+Example response:
+
+```json
+{
+	"deviceid": "device-001",
+	"status": "success",
+	"message": "File parsed successfully",
+	"fileName": "sample.txt",
+	"recordsProcessed": 120,
+	"validRecords": 115,
+	"invalidRecords": 5,
+	"invalidSamples": ["INVALID-RFID-1", "TOO-LONG-RFID-VALUE"]
+}
+```
+
 ### `POST /upload-rfid`
 
 Accepts multipart form-data:

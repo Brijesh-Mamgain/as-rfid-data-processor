@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pydantic import BaseModel, Field, HttpUrl
 
 
@@ -9,3 +11,14 @@ class UploadRFIDResponse(BaseModel):
     validRecords: int
     invalidRecords: int
     blobUrl: HttpUrl
+
+
+class ParseRFIDResponse(BaseModel):
+    deviceid: str | None = None
+    status: str = Field(examples=["success"])
+    message: str
+    fileName: str
+    recordsProcessed: int
+    validRecords: int
+    invalidRecords: int
+    invalidSamples: Optional[list[str]] = None
