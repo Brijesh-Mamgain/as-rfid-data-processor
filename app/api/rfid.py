@@ -99,5 +99,6 @@ async def parse_rfid(
         recordsProcessed=processing_result.total_records,
         validRecords=processing_result.valid_records,
         invalidRecords=processing_result.invalid_records,
+        validSamples=processing_result.valid_samples or None,
         invalidSamples=processing_result.invalid_samples or None,
     )

@@ -21,4 +21,5 @@ class ParseRFIDResponse(BaseModel):
     recordsProcessed: int
     validRecords: int
     invalidRecords: int
+    validSamples: Optional[list[str]] = None
     invalidSamples: Optional[list[str]] = None
