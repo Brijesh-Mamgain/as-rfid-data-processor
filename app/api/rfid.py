@@ -7,6 +7,7 @@ from starlette import status
 from app.core.config import settings
 from app.core.exceptions import InvalidRFIDFileError
 from app.integrations.azure_blob import AzureBlobClient
+from app.integrations.azure_sql import AzureSQLClient
 from app.models.rfid import ParseRFIDResponse, UploadRFIDResponse
 from app.services.rfid_processor import RFIDProcessor
 
@@ -34,10 +35,23 @@ async def upload_rfid(
         raise InvalidRFIDFileError("File exceeds configured size limit")
 
     processor = RFIDProcessor()
-    processing_result = processor.parse(file_content)
+    processing_result = processor.parse(
+        file_content,
+        device_id=deviceId or "unknown",
+        file_name=Path(file.filename or "rfid.txt").name,
+    )
 
     blob_client = AzureBlobClient()
     blob_url = blob_client.upload_with_retry(file.filename or "rfid.txt", file_content)
+
+    # Insert RFID records into database
+    sql_client = AzureSQLClient()
+    sql_client.insert_rfid_logs_batch(
+        device_id=deviceId or "unknown",
+        valid_rfids=processing_result.valid_samples,
+        invalid_rfids=processing_result.invalid_samples,
+        file_name=Path(file.filename or "rfid.txt").name,
+    )
 
     logger.info(
         "rfid_upload_success file=%s deviceId=%s timestamp=%s processed=%s valid=%s invalid=%s",
@@ -79,16 +93,19 @@ async def parse_rfid(
         raise InvalidRFIDFileError("File exceeds configured size limit")
 
     processor = RFIDProcessor()
-    processing_result = processor.parse(file_content)
+    processing_result = processor.parse(
+        file_content,
+        device_id=deviceid or "unknown",
+        file_name=Path(file.filename or "rfid.txt").name,
+    )
 
-    logger.info(
-        "rfid_parse_success file=%s deviceid=%s timestamp=%s processed=%s valid=%s invalid=%s",
-        file.filename,
-        deviceid,
-        timestamp,
-        processing_result.total_records,
-        processing_result.valid_records,
-        processing_result.invalid_records,
+    # Insert RFID records into database
+    sql_client = AzureSQLClient()
+    sql_client.insert_rfid_logs_batch(
+        device_id=deviceid or "unknown",
+        valid_rfids=processing_result.valid_samples,
+        invalid_rfids=processing_result.invalid_samples,
+        file_name=Path(file.filename or "rfid.txt").name,
     )
 
     return ParseRFIDResponse(

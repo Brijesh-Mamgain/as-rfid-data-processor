@@ -13,7 +13,12 @@ class RFIDParseResult:
 
 class RFIDParserService:
     
-    def parse(self, file_bytes: bytes) -> RFIDParseResult:
+    def parse(
+        self,
+        file_bytes: bytes,
+        device_id: str = "",
+        file_name: str = "",
+    ) -> RFIDParseResult:
         text = file_bytes.decode("utf-8", errors="ignore")
 
         # ✅ Step 1: Tokenize (space-separated hex values)

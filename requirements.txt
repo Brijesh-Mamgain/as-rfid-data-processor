@@ -7,3 +7,4 @@ azure-identity==1.23.0
 pytest==8.3.5
 httpx==0.28.1
 gunicorn==22.0.0
+pyodbc==5.0.1
