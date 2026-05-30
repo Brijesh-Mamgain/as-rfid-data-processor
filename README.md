@@ -170,3 +170,5 @@ docker run --rm -p 8000:8000 --env-file .env as-rfid-data-processor:latest
 - Async decoupling via Azure Service Bus
 - Batch/stream processing for large uploads
 - AI-assisted anomaly detection for RFID patterns
+
+--
