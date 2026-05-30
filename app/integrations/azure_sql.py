@@ -1,5 +1,4 @@
 import logging
-import re
 
 try:
     import pyodbc
@@ -13,73 +12,8 @@ logger = logging.getLogger(__name__)
 
 class AzureSQLClient:
     def __init__(self) -> None:
-        self.connection_string = self._normalize_connection_string(
-            settings.azure_sql_connection_string
-        )
+        self.connection_string = settings.azure_sql_connection_string
         self.database_name = settings.azure_sql_database_name
-
-    @staticmethod
-    def _normalize_connection_string(connection_string: str | None) -> str | None:
-        """Ensure an ODBC driver is present for pyodbc-compatible connection strings."""
-        if not connection_string:
-            return connection_string
-
-        normalized = connection_string.strip()
-
-        # Convert JDBC SQL Server format to ODBC format if needed.
-        # Example input token: jdbc:sqlserver://host:1433
-        jdbc_match = re.search(r"jdbc:sqlserver://([^;]+)", normalized, flags=re.IGNORECASE)
-        if jdbc_match:
-            host_port = jdbc_match.group(1).strip()
-            server_value = host_port.replace(":", ",") if ":" in host_port else host_port
-            normalized = re.sub(
-                r"jdbc:sqlserver://[^;]+;?",
-                "",
-                normalized,
-                flags=re.IGNORECASE,
-            )
-            normalized = f"Server=tcp:{server_value};{normalized}"
-
-        # ODBC Driver 17 expects Encrypt values as yes/no.
-        normalized = re.sub(
-            r"(?i)\bEncrypt\s*=\s*true\b",
-            "Encrypt=yes",
-            normalized,
-        )
-        normalized = re.sub(
-            r"(?i)\bEncrypt\s*=\s*false\b",
-            "Encrypt=no",
-            normalized,
-        )
-        normalized = re.sub(
-            r"(?i)\bTrustServerCertificate\s*=\s*true\b",
-            "TrustServerCertificate=yes",
-            normalized,
-        )
-        normalized = re.sub(
-            r"(?i)\bTrustServerCertificate\s*=\s*false\b",
-            "TrustServerCertificate=no",
-            normalized,
-        )
-
-        # Convert common JDBC key names to pyodbc/ODBC-friendly names.
-        normalized = re.sub(r"(?i)\buser\s*=", "UID=", normalized)
-        normalized = re.sub(r"(?i)\bpassword\s*=", "PWD=", normalized)
-        normalized = re.sub(r"(?i)\bloginTimeout\s*=", "Connection Timeout=", normalized)
-
-        # hostNameInCertificate is not accepted by ODBC Driver 17.
-        normalized = re.sub(
-            r"(?i)(^|;)\s*hostNameInCertificate\s*=\s*[^;]*;?",
-            r"\1",
-            normalized,
-        )
-
-        # Cleanup accidental duplicated separators after normalization.
-        normalized = re.sub(r";{2,}", ";", normalized).strip(";")
-
-        if "driver=" not in normalized.lower():
-            normalized = f"Driver={{ODBC Driver 17 for SQL Server}};{normalized}"
-        return normalized
 
     def insert_rfid_log(
         self,
@@ -106,13 +40,6 @@ class AzureSQLClient:
         cursor = None
 
         try:
-            logger.info(
-                "rfid_log_insert_start has_conn=%s has_driver=%s file=%s is_valid=%s",
-                bool(self.connection_string),
-                "driver=" in self.connection_string.lower(),
-                file_name,
-                is_valid,
-            )
             conn = pyodbc.connect(self.connection_string)
             cursor = conn.cursor()
 
@@ -136,11 +63,7 @@ class AzureSQLClient:
             return True
 
         except pyodbc.Error as e:
-            logger.exception(
-                "rfid_log_insert_failed pyodbc_error=%s args=%s",
-                str(e),
-                getattr(e, "args", ()),
-            )
+            logger.error("Failed to insert RFID log: %s", str(e))
             return False
         finally:
             if cursor:
