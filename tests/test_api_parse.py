@@ -9,9 +9,14 @@ client = TestClient(app)
 
 
 def test_parse_rfid_success() -> None:
+    payload = (
+        b"01 02 03 04 05 06 AA BB CC DD EE FF 0D 0E 0F 10\n"
+        b"ZZ 02 03 04 05 06 10 20 30 40 50 60 0D 0E 0F 10\n"
+        b"01 02 03 04 05 06 11 22 33 44 55 66 0D 0E 0F 10\n"
+    )
     response = client.post(
         "/parse-rfid",
-        files={"file": ("sample.txt", BytesIO(b"ABC123\ninvalid line\nTAG_0001\n"), "text/plain")},
+        files={"file": ("sample.txt", BytesIO(payload), "text/plain")},
         data={"deviceid": "dev-1", "timestamp": "2026-05-25T10:00:00Z"},
     )
 
@@ -22,7 +27,8 @@ def test_parse_rfid_success() -> None:
     assert payload["recordsProcessed"] == 3
     assert payload["validRecords"] == 2
     assert payload["invalidRecords"] == 1
-    assert payload["invalidSamples"] == ["invalid line"]
+    assert payload["validSamples"] == ["AABBCCDDEEFF", "112233445566"]
+    assert payload["invalidSamples"] == ["ZZ 02 03 04 05 06 10 20 30 40 50 60 0D 0E 0F 10"]
 
 
 def test_parse_rfid_rejects_non_txt() -> None:
