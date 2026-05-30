@@ -2,7 +2,7 @@ import logging
 
 try:
     import pyodbc
-except ModuleNotFoundError:  # pragma: no cover - depends on runtime environment
+except Exception:  # pragma: no cover - depends on runtime environment
     pyodbc = None
 
 from app.core.config import settings
@@ -40,7 +40,7 @@ class AzureSQLClient:
         cursor = None
 
         try:
-            conn = pyodbc.connect(self.connection_string)
+            conn = pyodbc.connect(self.connection_string, timeout=10)
             cursor = conn.cursor()
 
             insert_query = """
@@ -63,7 +63,7 @@ class AzureSQLClient:
             return True
 
         except pyodbc.Error as e:
-            logger.error("Failed to insert RFID log: %s", str(e))
+            logger.exception("Failed to insert RFID log: %s", str(e))
             return False
         finally:
             if cursor:
