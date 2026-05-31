@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 
-from fastapi import APIRouter, Body, File, Form, Header, UploadFile
+from fastapi import APIRouter, File, Form, Header, Request, UploadFile
 from starlette import status
 
 from app.core.config import settings
@@ -21,7 +21,7 @@ router = APIRouter(tags=["RFID"])
     status_code=status.HTTP_200_OK,
 )
 async def upload_rfid(
-    filecontent: bytes = Body(...),
+    request: Request,
     deviceid: str | None = Header(default=None, alias="deviceId"),
     filename: str | None = Header(default=None, alias="FileName"),
     timestamp: str | None = Header(default=None, alias="Timestamp"),
@@ -33,6 +33,7 @@ async def upload_rfid(
     if suffix != ".txt":
         raise InvalidRFIDFileError("Only .txt files are allowed")
 
+    filecontent = await request.body()
     if len(filecontent) > settings.max_upload_size_bytes:
         raise InvalidRFIDFileError("File exceeds configured size limit")
 
