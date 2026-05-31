@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 
-from fastapi import APIRouter, File, Form, Header, Request, UploadFile
+from fastapi import APIRouter, File, Form, Header, HTTPException, Request, UploadFile
 from starlette import status
 
 from app.core.config import settings
@@ -26,6 +26,15 @@ async def upload_rfid(
     filename: str | None = Header(default=None, alias="FileName"),
     timestamp: str | None = Header(default=None, alias="Timestamp"),
 ) -> UploadRFIDResponse:
+    # Accept raw text or binary payloads. Allow parameters like charset=utf-8.
+    content_type = (request.headers.get("content-type") or "").split(";")[0].strip().lower()
+    allowed_content_types = {"text/plain", "application/octet-stream"}
+    if content_type not in allowed_content_types:
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail="Content-Type must be text/plain or application/octet-stream",
+        )
+
     raw_filename = filename or "rfid.txt"
     safe_filename = Path(raw_filename).name
     suffix = Path(safe_filename).suffix.lower()
