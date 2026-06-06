@@ -104,3 +104,64 @@ class AzureSQLClient:
             inserted["failed"],
         )
         return inserted
+
+    def fetch_latest_rfid_scans_for_today(self) -> list[dict]:
+        """
+        Return the latest RFID scan for today (UTC) per opted-in user.
+
+        Join path: rfid_device_log → rfid_user → account_user
+        Filters:  account_user.user_opt_msg = 1, scan date = today UTC
+        Dedup:    ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY scan_timestamp_utc DESC) = 1
+
+        Returns a list of dicts with keys:
+            user_id, user_whatsapp, rfid, scan_timestamp_utc
+        """
+        if not self.connection_string:
+            logger.warning("Azure SQL connection string not configured, skipping fetch")
+            return []
+
+        if pyodbc is None:
+            logger.warning("pyodbc is not installed, skipping Azure SQL fetch")
+            return []
+
+        query = """
+            WITH ranked AS (
+                SELECT
+                    au.user_id,
+                    au.user_whatsapp,
+                    rdl.rfid,
+                    rdl.scan_timestamp_utc,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY au.user_id
+                        ORDER BY rdl.scan_timestamp_utc DESC
+                    ) AS rn
+                FROM asautomationdb.dbo.rfid_device_log rdl
+                JOIN asautomationdb.dbo.rfid_user ru ON rdl.rfid = ru.rfid
+                JOIN asautomationdb.dbo.account_user au ON ru.user_id = au.user_id
+                WHERE
+                    au.user_opt_msg = 1
+                    AND CAST(rdl.scan_timestamp_utc AS DATE) = CAST(GETUTCDATE() AS DATE)
+            )
+            SELECT user_id, user_whatsapp, rfid, scan_timestamp_utc
+            FROM ranked
+            WHERE rn = 1
+        """
+
+        conn = None
+        cursor = None
+        try:
+            conn = pyodbc.connect(self.connection_string, timeout=10)
+            cursor = conn.cursor()
+            cursor.execute(query)
+            columns = [col[0] for col in cursor.description]
+            rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
+            logger.info("fetch_latest_rfid_scans_for_today returned %d rows", len(rows))
+            return rows
+        except pyodbc.Error as e:
+            logger.exception("Failed to fetch latest RFID scans: %s", str(e))
+            return []
+        finally:
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()

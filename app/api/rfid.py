@@ -8,8 +8,9 @@ from app.core.config import settings
 from app.core.exceptions import InvalidRFIDFileError
 from app.integrations.azure_blob import AzureBlobClient
 from app.integrations.azure_sql import AzureSQLClient
-from app.models.rfid import ParseRFIDResponse, UploadRFIDResponse
+from app.models.rfid import ParseRFIDResponse, UploadRFIDResponse, WhatsAppNotificationResponse
 from app.services.rfid_processor import RFIDProcessor
+from app.services.whatsapp_service import WhatsAppService
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["RFID"])
@@ -135,3 +136,21 @@ async def parse_rfid(
         validSamples=processing_result.valid_samples or None,
         invalidSamples=processing_result.invalid_samples or None,
     )
+
+
+@router.post(
+    "/notify-whatsapp",
+    response_model=WhatsAppNotificationResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def notify_whatsapp() -> WhatsAppNotificationResponse:
+    """Manually trigger WhatsApp notifications for today's latest RFID scans."""
+    service = WhatsAppService()
+    result = service.notify()
+    logger.info(
+        "notify_whatsapp_triggered sent=%s skipped=%s failed=%s",
+        result.sent,
+        result.skipped,
+        result.failed,
+    )
+    return result

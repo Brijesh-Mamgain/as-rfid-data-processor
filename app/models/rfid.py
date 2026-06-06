@@ -3,6 +3,24 @@ from typing import Optional
 from pydantic import BaseModel, Field, HttpUrl
 
 
+class WhatsAppNotificationResult(BaseModel):
+    user_id: int
+    whatsapp: str
+    rfid: str
+    scan_timestamp_utc: str
+    status: str = Field(examples=["sent", "skipped", "failed"])
+    error: Optional[str] = None
+
+
+class WhatsAppNotificationResponse(BaseModel):
+    status: str = Field(examples=["success"])
+    message: str
+    sent: int
+    skipped: int
+    failed: int
+    notifications: list[WhatsAppNotificationResult] = []
+
+
 class UploadRFIDResponse(BaseModel):
     status: str = Field(examples=["success"])
     message: str
