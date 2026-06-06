@@ -140,7 +140,6 @@ class AzureSQLClient:
                 JOIN asautomationdb.dbo.account_user au ON ru.user_id = au.user_id
                 WHERE
                     au.user_opt_msg = 1
-                    AND CAST(rdl.scan_timestamp_utc AS DATE) = CAST(GETUTCDATE() AS DATE)
             )
             SELECT user_id, user_whatsapp, rfid, scan_timestamp_utc
             FROM ranked
