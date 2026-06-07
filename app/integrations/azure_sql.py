@@ -125,9 +125,12 @@ class AzureSQLClient:
             return []
 
         query = """
-            WITH ranked AS (
+            	WITH ranked AS (
                 SELECT
+                    ac.account_id,
+                    ac.account_name,
                     au.user_id,
+                    au.user_name,
                     au.user_whatsapp,
                     rdl.rfid,
                     rdl.scan_timestamp_utc,
@@ -138,10 +141,11 @@ class AzureSQLClient:
                 FROM asautomationdb.dbo.rfid_device_log rdl
                 JOIN asautomationdb.dbo.rfid_user ru ON rdl.rfid = ru.rfid
                 JOIN asautomationdb.dbo.account_user au ON ru.user_id = au.user_id
+                JOIN asautomationdb.dbo.account ac ON ac.account_id = au.account_id 
                 WHERE
                     au.user_opt_msg = 1
             )
-            SELECT user_id, user_whatsapp, rfid, scan_timestamp_utc
+            SELECT account_name,user_id, user_name, user_whatsapp, rfid, scan_timestamp_utc
             FROM ranked
             WHERE rn = 1
         """

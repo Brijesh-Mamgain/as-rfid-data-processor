@@ -7,10 +7,12 @@ from app.models.rfid import WhatsAppNotificationResponse, WhatsAppNotificationRe
 logger = logging.getLogger(__name__)
 
 MESSAGE_TEMPLATE = (
-    "RFID Alert 🚨\n\n"
+    "Location Alert 🚨\n\n"
+    "Hi {username},\n"
     "Device detected your tag:\n"
     "RFID: {rfid}\n"
-    "Time (UTC): {timestamp}"
+    "Time (UTC): {timestamp}\n\n"
+    "From {account} Management"
 )
 
 
@@ -40,7 +42,9 @@ class WhatsAppService:
         sent = skipped = failed = 0
 
         for row in candidates:
+            account_name = row.get("account_name")
             user_id = row.get("user_id")
+            user_name = row.get("user_name")
             whatsapp = (row.get("user_whatsapp") or "").strip()
             rfid = row.get("rfid", "")
             timestamp = str(row.get("scan_timestamp_utc", ""))
@@ -60,11 +64,13 @@ class WhatsAppService:
                 skipped += 1
                 continue
 
-            body = MESSAGE_TEMPLATE.format(rfid=rfid, timestamp=timestamp)
+            body = MESSAGE_TEMPLATE.format(username=user_name, rfid=rfid, timestamp=timestamp, account=account_name)
             try:
                 self._twilio.send_message(whatsapp, body)
                 results.append(
                     WhatsAppNotificationResult(
+                        account_name=account_name,
+                        user_name=user_name,
                         user_id=user_id,
                         whatsapp=whatsapp,
                         rfid=rfid,

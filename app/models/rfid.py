@@ -4,6 +4,8 @@ from pydantic import BaseModel, Field, HttpUrl
 
 
 class WhatsAppNotificationResult(BaseModel):
+    account_name: str
+    user_name: str
     user_id: int
     whatsapp: str
     rfid: str
