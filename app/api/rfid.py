@@ -1,7 +1,9 @@
 import logging
+import secrets
 from pathlib import Path
 
-from fastapi import APIRouter, File, Form, Header, HTTPException, Request, UploadFile
+from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, Request, UploadFile
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from starlette import status
 
 from app.core.config import settings
@@ -13,7 +15,46 @@ from app.services.rfid_processor import RFIDProcessor
 from app.services.whatsapp_service import WhatsAppService
 
 logger = logging.getLogger(__name__)
-router = APIRouter(tags=["RFID"])
+
+_bearer_scheme = HTTPBearer(auto_error=False)
+
+
+def _verify_rfid_api_token(
+    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer_scheme),
+) -> None:
+    """FastAPI dependency that enforces Bearer token authentication.
+
+    Reads the expected token from ``settings.rfid_api_token`` at request time so
+    the value can be rotated without restarting the process.
+    Raises 500 when the server is misconfigured (token not set).
+    Raises 401 when the client sends a missing or wrong token.
+    Uses :func:`secrets.compare_digest` to prevent timing-based side-channel attacks.
+    """
+    expected = settings.rfid_api_token
+    if not expected:
+        logger.error("RFID_API_TOKEN is not configured; rejecting request")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Authentication is not configured on this server",
+        )
+    if (
+        credentials is None
+        or credentials.scheme.lower() != "bearer"
+        or not secrets.compare_digest(
+            credentials.credentials.encode(), expected.encode()
+        )
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or missing authentication token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+
+router = APIRouter(
+    tags=["RFID"],
+    dependencies=[Depends(_verify_rfid_api_token)],
+)
 
 
 @router.post(

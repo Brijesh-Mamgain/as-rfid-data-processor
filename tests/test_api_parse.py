@@ -3,6 +3,7 @@ from io import BytesIO
 from fastapi.testclient import TestClient
 
 from app.main import app
+from tests.conftest import AUTH_HEADERS
 
 
 client = TestClient(app)
@@ -16,6 +17,7 @@ def test_parse_rfid_success() -> None:
     )
     response = client.post(
         "/parse-rfid",
+        headers=AUTH_HEADERS,
         files={"file": ("sample.txt", BytesIO(payload), "text/plain")},
         data={"deviceid": "dev-1", "timestamp": "2026-05-25T10:00:00Z"},
     )
@@ -34,7 +36,30 @@ def test_parse_rfid_success() -> None:
 def test_parse_rfid_rejects_non_txt() -> None:
     response = client.post(
         "/parse-rfid",
+        headers=AUTH_HEADERS,
         files={"file": ("sample.csv", BytesIO(b"ABC123"), "text/csv")},
     )
 
     assert response.status_code == 400
+
+
+def test_parse_rfid_missing_token() -> None:
+    """Requests without Authorization header must be rejected with 401."""
+    response = client.post(
+        "/parse-rfid",
+        files={"file": ("sample.txt", BytesIO(b"ABC123\n"), "text/plain")},
+    )
+
+    assert response.status_code == 401
+    assert response.headers["www-authenticate"] == "Bearer"
+
+
+def test_parse_rfid_wrong_token() -> None:
+    """Requests with an incorrect token must be rejected with 401."""
+    response = client.post(
+        "/parse-rfid",
+        headers={"Authorization": "Bearer wrong-token"},
+        files={"file": ("sample.txt", BytesIO(b"ABC123\n"), "text/plain")},
+    )
+
+    assert response.status_code == 401

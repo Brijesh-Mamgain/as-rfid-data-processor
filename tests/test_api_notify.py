@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 from app.models.rfid import WhatsAppNotificationResponse, WhatsAppNotificationResult
+from tests.conftest import AUTH_HEADERS
 
 client = TestClient(app)
 
@@ -28,6 +29,8 @@ class StubWhatsAppServiceAllSent:
             notifications=[
                 WhatsAppNotificationResult(
                     user_id=1,
+                    account_name="ACC001",
+                    user_name="User One",
                     whatsapp="+911111111111",
                     rfid="TAG0001",
                     scan_timestamp_utc="2026-06-06 03:00:00",
@@ -35,6 +38,8 @@ class StubWhatsAppServiceAllSent:
                 ),
                 WhatsAppNotificationResult(
                     user_id=2,
+                    account_name="ACC002",
+                    user_name="User Two",
                     whatsapp="+912222222222",
                     rfid="TAG0002",
                     scan_timestamp_utc="2026-06-06 04:00:00",
@@ -62,7 +67,7 @@ class StubWhatsAppServiceNoRecords:
 def test_notify_whatsapp_success(monkeypatch) -> None:
     monkeypatch.setattr("app.api.rfid.WhatsAppService", StubWhatsAppServiceAllSent)
 
-    response = client.post("/notify-whatsapp")
+    response = client.post("/notify-whatsapp", headers=AUTH_HEADERS)
 
     assert response.status_code == 200
     payload = response.json()
@@ -76,7 +81,7 @@ def test_notify_whatsapp_success(monkeypatch) -> None:
 def test_notify_whatsapp_no_records(monkeypatch) -> None:
     monkeypatch.setattr("app.api.rfid.WhatsAppService", StubWhatsAppServiceNoRecords)
 
-    response = client.post("/notify-whatsapp")
+    response = client.post("/notify-whatsapp", headers=AUTH_HEADERS)
 
     assert response.status_code == 200
     payload = response.json()
@@ -89,8 +94,26 @@ def test_notify_whatsapp_response_shape(monkeypatch) -> None:
     """Verify required response fields are always present."""
     monkeypatch.setattr("app.api.rfid.WhatsAppService", StubWhatsAppServiceAllSent)
 
-    response = client.post("/notify-whatsapp")
+    response = client.post("/notify-whatsapp", headers=AUTH_HEADERS)
 
     payload = response.json()
     for field in ("status", "message", "sent", "skipped", "failed", "notifications"):
         assert field in payload, f"Missing field: {field}"
+
+
+def test_notify_whatsapp_missing_token() -> None:
+    """Requests without Authorization header must be rejected with 401."""
+    response = client.post("/notify-whatsapp")
+
+    assert response.status_code == 401
+    assert response.headers["www-authenticate"] == "Bearer"
+
+
+def test_notify_whatsapp_wrong_token() -> None:
+    """Requests with an incorrect token must be rejected with 401."""
+    response = client.post(
+        "/notify-whatsapp",
+        headers={"Authorization": "Bearer wrong-token"},
+    )
+
+    assert response.status_code == 401

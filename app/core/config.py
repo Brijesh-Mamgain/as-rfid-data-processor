@@ -16,6 +16,10 @@ class Settings(BaseSettings):
     max_upload_size_bytes: int = 5 * 1024 * 1024
     max_line_length: int = 256
 
+    # Bearer token required on all RFID API endpoints.
+    # Set via RFID_API_TOKEN environment variable.
+    rfid_api_token: str | None = None
+
     twilio_account_sid: str | None = None
     twilio_auth_token: str | None = None
     # When set, used as the WhatsApp sender; otherwise falls back to Twilio sandbox number.
