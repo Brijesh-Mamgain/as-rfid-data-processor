@@ -84,6 +84,7 @@ jobs:
             TWILIO_WHATSAPP_NUMBER='${{ secrets.TWILIO_WHATSAPP_NUMBER }}' \
             WEBSITES_PORT='${{ secrets.WEBSITES_PORT }}' \
             WEBSITES_CONTAINER_START_TIME_LIMIT='600' \
+            RFID_API_TOKEN='${{ secrets.RFID_API_TOKEN }}' \
             MAX_UPLOAD_SIZE_BYTES='5242880' \
             MAX_LINE_LENGTH='256'
 
