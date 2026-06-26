@@ -38,7 +38,7 @@ router = APIRouter(
     "",
     response_model=QueryResponse,
     status_code=status.HTTP_200_OK,
-    summary="Natural language query",
+    summary="Query Data in Natural language",
     description=(
         "Convert a plain-English question into T-SQL, execute it against the "
         "RFID database, and return results shaped for counts, tables, or charts."
@@ -67,7 +67,7 @@ def natural_language_query(body: QueryRequest) -> QueryResponse:
         logger.exception("nl_query execution error: %s", exc)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Query execution failed. Check server logs for details.",
+            detail=f"{type(exc).__name__}: {exc}",
         ) from exc
 
     logger.info(

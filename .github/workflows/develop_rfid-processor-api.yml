@@ -85,6 +85,11 @@ jobs:
             WEBSITES_PORT='${{ secrets.WEBSITES_PORT }}' \
             WEBSITES_CONTAINER_START_TIME_LIMIT='600' \
             RFID_API_TOKEN='${{ secrets.RFID_API_TOKEN }}' \
+            AZURE_OPENAI_ENDPOINT='${{ secrets.AZURE_OPENAI_ENDPOINT }}' \
+            AZURE_OPENAI_API_KEY='${{ secrets.AZURE_OPENAI_API_KEY }}' \
+            AZURE_OPENAI_DEPLOYMENT='${{ secrets.AZURE_OPENAI_DEPLOYMENT }}' \
+            AZURE_OPENAI_API_VERSION='${{ secrets.AZURE_OPENAI_API_VERSION }}' \
+            NL_QUERY_MAX_ROWS='${{ secrets.NL_QUERY_MAX_ROWS}}' \
             MAX_UPLOAD_SIZE_BYTES='5242880' \
             MAX_LINE_LENGTH='256'
 
