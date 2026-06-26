@@ -105,6 +105,42 @@ class AzureSQLClient:
         )
         return inserted
 
+    def execute_query(self, sql: str, max_rows: int = 500) -> list[dict]:
+        """Execute a validated read-only SELECT and return rows as a list of dicts.
+
+        Args:
+            sql: A pre-validated SELECT statement.
+            max_rows: Safety cap on the number of rows returned.
+
+        Returns:
+            List of row dicts. Raises ``pyodbc.Error`` on DB failure.
+        """
+        if not self.connection_string:
+            logger.warning("Azure SQL connection string not configured, skipping query")
+            return []
+        if pyodbc is None:
+            logger.warning("pyodbc is not installed, skipping query")
+            return []
+
+        conn = None
+        cursor = None
+        try:
+            conn = pyodbc.connect(self.connection_string, timeout=10)
+            cursor = conn.cursor()
+            cursor.execute(sql)
+            columns = [col[0] for col in cursor.description]
+            rows = [dict(zip(columns, row)) for row in cursor.fetchmany(max_rows)]
+            logger.info("execute_query returned %d rows", len(rows))
+            return rows
+        except pyodbc.Error as e:
+            logger.exception("execute_query failed: %s", str(e))
+            raise
+        finally:
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
+
     def fetch_latest_rfid_scans_for_today(self) -> list[dict]:
         """
         Return the latest RFID scan for today (UTC) per opted-in user.

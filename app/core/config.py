@@ -25,6 +25,14 @@ class Settings(BaseSettings):
     # When set, used as the WhatsApp sender; otherwise falls back to Twilio sandbox number.
     twilio_whatsapp_number: str | None = None
 
+    # Azure OpenAI — used by the natural-language query endpoint.
+    azure_openai_endpoint: str | None = None
+    azure_openai_api_key: str | None = None
+    azure_openai_deployment: str = "gpt-4o"
+    azure_openai_api_version: str = "2024-02-01"
+    # Maximum rows the NL query endpoint may return (guards against large dumps).
+    nl_query_max_rows: int = 500
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
